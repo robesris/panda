@@ -26,7 +26,7 @@ package
 	import flash.utils.ByteArray;
 	import flash.utils.Timer;
 	
-	public class Panda extends MovieClip
+	public class panda extends MovieClip
 	{
 		const MP3_PORTION = 0.75;
 		
