@@ -1,0 +1,10 @@
+.DS_Store
+panda.swf
+fb_project/.*
+fb_project/bin-debug
+fb_project/html-template
+*.mp3
+*.flv
+config/deploy.rb
+title_full.swf
+upload
