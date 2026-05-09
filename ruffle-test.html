@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ruffle smoke test — Panda</title>
+<style>
+  html, body { background: #113745; color: #fff; font: 13px/1.4 helvetica, arial, sans-serif; margin: 0; }
+  .wrap { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+  #stage { width: 800px; height: 500px; background: #000; }
+  #log { background: #0a2330; border: 1px solid #1d4f64; padding: 8px 12px; margin-top: 16px; font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; max-height: 240px; overflow: auto; }
+  h1 { font-size: 16px; margin: 0 0 12px; }
+  a { color: #9ff0f6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ruffle smoke test</h1>
+  <p>Drop <code>panda.swf</code> next to this file and serve the directory over HTTP (e.g. <code>python3 -m http.server 8000</code>), then open <code>http://localhost:8000/ruffle-test.html</code>.</p>
+  <div id="stage"></div>
+  <div id="log">Loading Ruffle…</div>
+</div>
+
+<script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+<script>
+  const log = (msg) => {
+    const el = document.getElementById("log");
+    el.textContent += "\n" + msg;
+    el.scrollTop = el.scrollHeight;
+  };
+  window.addEventListener("error", (e) => log("[error] " + e.message));
+
+  window.RufflePlayer = window.RufflePlayer || {};
+  window.RufflePlayer.config = {
+    autoplay: "on",
+    unmuteOverlay: "visible",
+    logLevel: "info",
+    warnOnUnsupportedContent: true,
+  };
+
+  window.addEventListener("load", () => {
+    const ruffle = window.RufflePlayer.newest();
+    if (!ruffle) { log("Ruffle failed to initialize."); return; }
+    log("Ruffle build: " + (ruffle.version || "unknown"));
+    const player = ruffle.createPlayer();
+    player.id = "panda-player";
+    player.style.width = "800px";
+    player.style.height = "500px";
+    document.getElementById("stage").appendChild(player);
+    player.addEventListener("loadedmetadata", () => log("[ruffle] loadedmetadata"));
+    player.load("panda.swf").then(
+      () => log("Loaded panda.swf — watch the canvas above."),
+      (err) => log("Load failed: " + err)
+    );
+  });
+</script>
+</body>
+</html>
