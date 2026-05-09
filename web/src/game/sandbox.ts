@@ -5,9 +5,9 @@
 //   flux > BEAT_FLUX & peak  → watermelon enemy spawns and pulses
 //   level                    → background brightness
 
-import { AnimatedSprite, Application, Container, Sprite, Text, TilingSprite } from "pixi.js";
+import { AnimatedSprite, Container, Sprite, Text, TilingSprite } from "pixi.js";
 import type { FrameFeatures } from "../audio/engine";
-import { loadSprites, type LoadedSprites } from "./sprites";
+import type { LoadedSprites } from "./sprites";
 
 export interface SandboxThresholds {
   hiFlux: number;
@@ -20,7 +20,6 @@ interface Mover {
   vy: number;
   life: number;
   maxLife: number;
-  /** Used for beat-enemy pulse animation. */
   pulse: number;
 }
 
@@ -28,18 +27,17 @@ const STAGE_W = 800;
 const STAGE_H = 500;
 
 export class Sandbox {
-  app: Application;
+  container = new Container();
+  thresholds: SandboxThresholds = { hiFlux: 0.6, beatFlux: 1.5 };
+
   private world: Container;
   private bg!: TilingSprite;
   private player!: AnimatedSprite;
   private movers: Mover[] = [];
   private statText: Text;
   private sprites!: LoadedSprites;
-  thresholds: SandboxThresholds = { hiFlux: 0.6, beatFlux: 1.5 };
-  private lastFlashTicks = 0;
 
   constructor() {
-    this.app = new Application();
     this.world = new Container();
     this.statText = new Text({
       text: "",
@@ -47,28 +45,18 @@ export class Sandbox {
     });
   }
 
-  async init(canvas: HTMLCanvasElement) {
-    await this.app.init({
-      canvas,
-      width: STAGE_W,
-      height: STAGE_H,
-      background: 0x0a2330,
-      antialias: false, // pixel-art assets
-    });
-    this.sprites = await loadSprites();
+  build(sprites: LoadedSprites) {
+    this.sprites = sprites;
 
-    // Tiled starfield background.
     this.bg = new TilingSprite({
-      texture: this.sprites.bgStars,
+      texture: sprites.bgStars,
       width: STAGE_W,
       height: STAGE_H,
     });
-    this.app.stage.addChild(this.bg);
+    this.container.addChild(this.bg);
+    this.container.addChild(this.world);
 
-    this.app.stage.addChild(this.world);
-
-    // Player: animated walk cycle, anchored bottom-left of foot.
-    this.player = new AnimatedSprite(this.sprites.playerWalk);
+    this.player = new AnimatedSprite(sprites.playerWalk);
     this.player.animationSpeed = 0.18;
     this.player.anchor.set(0.5, 1);
     this.player.x = 80;
@@ -79,19 +67,16 @@ export class Sandbox {
 
     this.statText.x = 8;
     this.statText.y = 8;
-    this.app.stage.addChild(this.statText);
-
-    this.app.ticker.add(() => this.update());
+    this.container.addChild(this.statText);
   }
 
+  /** Per-frame audio features. Call once per ticker tick when active. */
   feed(f: FrameFeatures) {
-    // Background scroll + brightness from level.
     const brightness = Math.min(1, 0.4 + f.level * 6);
     this.bg.tint = rgbTint(brightness);
     this.bg.tilePosition.x -= 0.5 + f.level * 4;
 
     if (f.fluxPeak && f.flux > this.thresholds.beatFlux) {
-      this.lastFlashTicks = 8;
       this.spawnBeatEnemy(f);
     } else if (f.flux > this.thresholds.hiFlux) {
       if (Math.random() < 0.25) this.spawnSkitter(f);
@@ -103,6 +88,27 @@ export class Sandbox {
       `Hz ${f.dominantHz.toFixed(0).padStart(5, " ")}  ` +
       `level ${f.level.toFixed(2)}  ` +
       `live ${this.movers.length}`;
+  }
+
+  /** Per-frame physics; call regardless of audio state so debris finishes. */
+  update() {
+    for (let i = this.movers.length - 1; i >= 0; i--) {
+      const m = this.movers[i];
+      m.sprite.x += m.vx;
+      m.sprite.y += m.vy;
+      m.sprite.rotation += 0.02;
+      m.life++;
+      if (m.pulse > 0) {
+        const baseScale = m.sprite.scale.x / (1 + m.pulse * 0.15);
+        m.pulse *= 0.85;
+        m.sprite.scale.set(baseScale * (1 + m.pulse * 0.15));
+      }
+      if (m.life > m.maxLife || m.sprite.x < -60) {
+        this.world.removeChild(m.sprite);
+        m.sprite.destroy();
+        this.movers.splice(i, 1);
+      }
+    }
   }
 
   private spawnSkitter(f: FrameFeatures) {
@@ -141,35 +147,10 @@ export class Sandbox {
       pulse: 1,
     });
   }
-
-  private update() {
-    // Flash overlay decays via stage alpha hack on a temp sprite — use bg tint
-    // pulse instead for simplicity. The flash readout is folded into bg.tint.
-    if (this.lastFlashTicks > 0) this.lastFlashTicks--;
-
-    for (let i = this.movers.length - 1; i >= 0; i--) {
-      const m = this.movers[i];
-      m.sprite.x += m.vx;
-      m.sprite.y += m.vy;
-      m.sprite.rotation += 0.02;
-      m.life++;
-      if (m.pulse > 0) {
-        const baseScale = m.sprite.scale.x / (1 + m.pulse * 0.15);
-        m.pulse *= 0.85;
-        m.sprite.scale.set(baseScale * (1 + m.pulse * 0.15));
-      }
-      if (m.life > m.maxLife || m.sprite.x < -60) {
-        this.world.removeChild(m.sprite);
-        m.sprite.destroy();
-        this.movers.splice(i, 1);
-      }
-    }
-  }
 }
 
 function pitchToY(pitch: number, top: number, bottom: number): number {
   if (pitch < 0) return (top + bottom) / 2;
-  // Higher pitch → higher on screen. Pitch range is 0..36.
   const t = 1 - pitch / 36;
   return top + t * (bottom - top);
 }
