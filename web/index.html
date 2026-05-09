@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Darling My Panda — web rebuild</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; background: #113745; color: #e6f6fa; font: 13px/1.4 helvetica, arial, sans-serif; }
+      .wrap { max-width: 1024px; margin: 24px auto; padding: 0 16px; }
+      h1 { font-size: 18px; margin: 0 0 12px; letter-spacing: .04em; }
+      #stage { width: 800px; height: 500px; background: #000; display: block; }
+      .controls { display: flex; gap: 12px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+      .controls button, .controls label.file {
+        background: #0a2330; color: #e6f6fa; border: 1px solid #1d4f64;
+        padding: 6px 12px; border-radius: 4px; cursor: pointer; font: inherit;
+      }
+      .controls button:hover, .controls label.file:hover { background: #143847; }
+      .controls input[type="file"] { display: none; }
+      .meter { font-family: ui-monospace, monospace; font-size: 12px; color: #9ff0f6; }
+      #debug { width: 800px; height: 80px; background: #0a2330; border: 1px solid #1d4f64; display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>DARLING MY PANDA — web rebuild</h1>
+      <div class="controls">
+        <label class="file">
+          Load audio file
+          <input id="file-input" type="file" accept="audio/*" />
+        </label>
+        <button id="mic-btn">Use microphone</button>
+        <button id="stop-btn">Stop</button>
+        <span class="meter" id="meter">no source</span>
+      </div>
+      <canvas id="stage"></canvas>
+      <canvas id="debug" width="800" height="80"></canvas>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
