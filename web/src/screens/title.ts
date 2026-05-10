@@ -74,13 +74,28 @@ export class TitleScreen {
     });
     tagline.anchor.set(0.5);
     tagline.x = STAGE_W / 2;
-    tagline.y = 252;
+    tagline.y = 248;
     this.container.addChild(tagline);
+
+    // Controls hint right below the tagline.
+    const controls = new Text({
+      text: "MOVE: MOUSE      FIRE: CLICK / SPACE",
+      style: {
+        fill: 0xc8e9f0,
+        fontFamily: "ui-monospace, monospace",
+        fontSize: 12,
+        letterSpacing: 1,
+      },
+    });
+    controls.anchor.set(0.5);
+    controls.x = STAGE_W / 2;
+    controls.y = 274;
+    this.container.addChild(controls);
 
     // GO button = file picker.
     this.goBtn = new Button(sprites.btnGo);
     this.goBtn.x = STAGE_W / 2 - 120;
-    this.goBtn.y = 340;
+    this.goBtn.y = 350;
     this.goBtn.scale.set(1.4);
     this.goBtn.onClick = () => this.onPickFile();
     this.container.addChild(this.goBtn);
@@ -92,7 +107,7 @@ export class TitleScreen {
     // Mic button (re-uses the yellow rectangular Win button as a generic CTA).
     this.micBtn = new Button(sprites.btnWin);
     this.micBtn.x = STAGE_W / 2 + 120;
-    this.micBtn.y = 340;
+    this.micBtn.y = 350;
     this.micBtn.scale.set(0.7);
     this.micBtn.onClick = () => this.onPickMic();
     this.container.addChild(this.micBtn);

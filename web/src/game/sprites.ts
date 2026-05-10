@@ -7,7 +7,10 @@ const PLAYER_WALK_FRAMES = 9;
 export const SPRITES = {
   player: {
     walk: Array.from({ length: PLAYER_WALK_FRAMES }, (_, i) => `/assets/player/walk-${i + 1}.gif`),
-    idle: "/assets/player/panda-revised.png",
+    flyForward: "/assets/player/panda-revised.png",
+    flyBack: "/assets/player/panda-back-nohead.png",
+    headFwd: "/assets/player/face1.png",
+    headBack: "/assets/player/face2.png",
   },
   enemies: {
     watermelonReg: "/assets/enemies/watermelon-reg.png",
@@ -19,6 +22,9 @@ export const SPRITES = {
   },
   bg: {
     stars: "/assets/bg/stars.png",
+    starsBig: "/assets/bg/stars-big.gif",
+    mountains: "/assets/bg/mountains.png",
+    ground: "/assets/bg/ground.png",
   },
   title: {
     bg: "/assets/title/bg.png",
@@ -44,12 +50,16 @@ export const SPRITES = {
 
 export interface LoadedSprites {
   playerWalk: Texture[];
-  playerIdle: Texture;
+  playerFlyFwd: Texture;
+  playerFlyBack: Texture;
   watermelonReg: Texture;
   watermelonHit: Texture;
   rocks: Texture[];
   seed: Texture;
   bgStars: Texture;
+  bgStarsBig: Texture;
+  bgMountains: Texture;
+  bgGround: Texture;
   titleBg: Texture;
   titleLogo: Texture;
   titlePanda: Texture;
@@ -61,15 +71,12 @@ export interface LoadedSprites {
 export async function loadSprites(): Promise<LoadedSprites> {
   const urls = [
     ...SPRITES.player.walk,
-    SPRITES.player.idle,
-    SPRITES.enemies.watermelonReg,
-    SPRITES.enemies.watermelonHit,
+    SPRITES.player.flyForward, SPRITES.player.flyBack,
+    SPRITES.enemies.watermelonReg, SPRITES.enemies.watermelonHit,
     ...SPRITES.enemies.rocks,
     SPRITES.projectile.seed,
-    SPRITES.bg.stars,
-    SPRITES.title.bg,
-    SPRITES.title.logo,
-    SPRITES.title.panda,
+    SPRITES.bg.stars, SPRITES.bg.starsBig, SPRITES.bg.mountains, SPRITES.bg.ground,
+    SPRITES.title.bg, SPRITES.title.logo, SPRITES.title.panda,
     SPRITES.title.btnGo.up, SPRITES.title.btnGo.over, SPRITES.title.btnGo.hit,
     SPRITES.title.btnAgain.up, SPRITES.title.btnAgain.over, SPRITES.title.btnAgain.hit,
     SPRITES.title.btnWin.up, SPRITES.title.btnWin.over, SPRITES.title.btnWin.hit,
@@ -77,12 +84,16 @@ export async function loadSprites(): Promise<LoadedSprites> {
   const map = await Assets.load<Texture>(urls);
   return {
     playerWalk: SPRITES.player.walk.map((u) => map[u]),
-    playerIdle: map[SPRITES.player.idle],
+    playerFlyFwd: map[SPRITES.player.flyForward],
+    playerFlyBack: map[SPRITES.player.flyBack],
     watermelonReg: map[SPRITES.enemies.watermelonReg],
     watermelonHit: map[SPRITES.enemies.watermelonHit],
     rocks: SPRITES.enemies.rocks.map((u) => map[u]),
     seed: map[SPRITES.projectile.seed],
     bgStars: map[SPRITES.bg.stars],
+    bgStarsBig: map[SPRITES.bg.starsBig],
+    bgMountains: map[SPRITES.bg.mountains],
+    bgGround: map[SPRITES.bg.ground],
     titleBg: map[SPRITES.title.bg],
     titleLogo: map[SPRITES.title.logo],
     titlePanda: map[SPRITES.title.panda],

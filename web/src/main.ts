@@ -1,11 +1,11 @@
 // App orchestrator. Owns the Pixi Application, the audio engine, and routes
-// state transitions between TitleScreen and Sandbox.
+// state transitions between TitleScreen and GameScene.
 
 import { Application } from "pixi.js";
 import { AudioFeatureEngine } from "./audio/engine";
 import { AudioSource } from "./audio/source";
 import { FluxVisualizer } from "./debug/visualizer";
-import { Sandbox } from "./game/sandbox";
+import { FLUX_BEAT, GameScene, type InputState } from "./game/scene";
 import { loadSprites } from "./game/sprites";
 import { TitleScreen } from "./screens/title";
 
@@ -13,7 +13,6 @@ const stageCanvas = document.getElementById("stage") as HTMLCanvasElement;
 const debugCanvas = document.getElementById("debug") as HTMLCanvasElement;
 const fileInput = document.getElementById("file-input") as HTMLInputElement;
 const meter = document.getElementById("meter") as HTMLSpanElement;
-// HTML controls remain available as a low-level fallback / for restarting.
 const micBtn = document.getElementById("mic-btn") as HTMLButtonElement;
 const stopBtn = document.getElementById("stop-btn") as HTMLButtonElement;
 
@@ -22,7 +21,7 @@ await app.init({
   canvas: stageCanvas,
   width: 800,
   height: 500,
-  background: 0x0a2330,
+  background: 0x000000,
   antialias: false,
 });
 
@@ -30,7 +29,7 @@ const sprites = await loadSprites();
 
 const title = new TitleScreen();
 title.build(sprites);
-const game = new Sandbox();
+const game = new GameScene();
 game.build(sprites);
 game.container.visible = false;
 
@@ -43,19 +42,23 @@ let engine: AudioFeatureEngine | null = null;
 let source: AudioSource | null = null;
 let mode: "title" | "game" = "title";
 
+const input: InputState = {
+  mouseX: 400,
+  mouseY: 250,
+  mouseDown: false,
+  spaceDown: false,
+};
+
 function ensureEngine(): { engine: AudioFeatureEngine; source: AudioSource } {
   if (engine && source) return { engine, source };
   const ctx = new AudioContext();
-  engine = new AudioFeatureEngine(ctx, { fftSize: 2048, smoothing: 0.0 });
+  engine = new AudioFeatureEngine(ctx, { fftSize: 2048, smoothing: 0.0, fps: 60 });
   source = new AudioSource(engine);
   source.onState((s) => {
     meter.textContent = s.label;
     title.setStatus(s.label);
-    if (s.kind === "file" || s.kind === "mic") {
-      switchToGame();
-    } else if (s.kind === "none" && mode === "game") {
-      switchToTitle();
-    }
+    if (s.kind === "file" || s.kind === "mic") switchToGame();
+    else if (s.kind === "none" && mode === "game") switchToTitle();
   });
   return { engine, source };
 }
@@ -64,6 +67,7 @@ function switchToGame() {
   if (mode === "game") return;
   mode = "game";
   game.container.visible = true;
+  stageCanvas.style.cursor = "none"; // Mouse.hide() in the original
   fadeOut(title.container, 220, () => {
     title.container.visible = false;
     title.container.alpha = 1;
@@ -73,6 +77,7 @@ function switchToGame() {
 function switchToTitle() {
   if (mode === "title") return;
   mode = "title";
+  stageCanvas.style.cursor = "default";
   title.container.visible = true;
   title.container.alpha = 0;
   fadeIn(title.container, 220);
@@ -101,18 +106,56 @@ micBtn.addEventListener("click", async () => {
 
 stopBtn.addEventListener("click", () => source?.stop());
 
-// Single render tick. Audio features only flow when game is active.
+// Mouse + keyboard: only consumed during game mode; the title screen has its
+// own Pixi event handlers for buttons.
+function updateMouseFromEvent(e: MouseEvent) {
+  const rect = stageCanvas.getBoundingClientRect();
+  // Account for any CSS scaling between the canvas's drawing buffer and its
+  // displayed size.
+  const sx = stageCanvas.width / rect.width;
+  const sy = stageCanvas.height / rect.height;
+  input.mouseX = (e.clientX - rect.left) * sx;
+  input.mouseY = (e.clientY - rect.top) * sy;
+}
+
+stageCanvas.addEventListener("mousemove", updateMouseFromEvent);
+stageCanvas.addEventListener("mousedown", (e) => {
+  updateMouseFromEvent(e);
+  input.mouseDown = true;
+  if (mode === "game") game.shoot();
+});
+window.addEventListener("mouseup", () => { input.mouseDown = false; });
+
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && !input.spaceDown) {
+    input.spaceDown = true;
+    if (mode === "game") game.shoot();
+    e.preventDefault();
+  }
+});
+window.addEventListener("keyup", (e) => {
+  if (e.code === "Space") input.spaceDown = false;
+});
+
+// Single render tick.
+let prevTime = performance.now();
 app.ticker.add(() => {
-  game.update();
-  if (engine && mode === "game") {
-    const f = engine.tick();
-    visualizer.push(f, game.thresholds.beatFlux);
-    visualizer.draw(game.thresholds.beatFlux);
-    game.feed(f);
+  const now = performance.now();
+  // dt scaled so 1.0 == "one frame at 60Hz" — the same units the original used at 30 FPS halved.
+  const dt = Math.min(2, (now - prevTime) / (1000 / 60));
+  prevTime = now;
+
+  if (mode === "game") {
+    game.update(input, dt);
+    if (engine) {
+      const f = engine.tick();
+      visualizer.push(f, FLUX_BEAT);
+      visualizer.draw(FLUX_BEAT);
+      game.feed(f);
+    }
   }
 });
 
-// Simple alpha tweens; Pixi's ticker drives them so we share the same clock.
 function fadeOut(target: { alpha: number }, ms: number, done?: () => void) {
   const start = performance.now();
   const from = target.alpha;
