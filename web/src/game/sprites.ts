@@ -6,7 +6,7 @@ const PLAYER_WALK_FRAMES = 9;
 
 export const SPRITES = {
   player: {
-    walk: Array.from({ length: PLAYER_WALK_FRAMES }, (_, i) => `/assets/player/walk-${i + 1}.gif`),
+    walk: Array.from({ length: PLAYER_WALK_FRAMES }, (_, i) => `/assets/player/walk-${i + 1}.png`),
     flyForward: "/assets/player/panda-revised.png",
     flyBack: "/assets/player/panda-back-nohead.png",
     headFwd: "/assets/player/face1.png",
@@ -22,7 +22,7 @@ export const SPRITES = {
   },
   bg: {
     stars: "/assets/bg/stars.png",
-    starsBig: "/assets/bg/stars-big.gif",
+    starsBig: "/assets/bg/stars-big.png",
     mountains: "/assets/bg/mountains.png",
     ground: "/assets/bg/ground.png",
   },
